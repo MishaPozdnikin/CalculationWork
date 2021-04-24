@@ -17,6 +17,7 @@ public:
 	matrix& operator+=(const matrix& m);
 	matrix& operator-=(const matrix& m);
 	matrix operator!() const;
+	bool operator ==(const matrix& m);
 	long double*& operator[](int index) const;
 
 	friend matrix operator+(const matrix& left, const matrix& right);

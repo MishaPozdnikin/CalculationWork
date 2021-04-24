@@ -81,6 +81,18 @@ matrix matrix::operator!() const
 	return res;
 }
 
+bool matrix::operator==(const matrix& m)
+{
+	for (int i = 0; i < rowCount; ++i) {
+		for (int j = 0; j < columnCount; ++j) {
+			if (p[i][j] != m[i][j]) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 long double*& matrix::operator[](int index) const
 {
 	return p[index];
