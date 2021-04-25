@@ -37,7 +37,9 @@ int main(int argc, char* argv[])
 			std::cout << "Fill matrix B: " << std::endl;
 		}
 		else {
-			for (int i = 0; i < 160; i++) {
+			A.randInit();
+			B.randInit();
+			/*for (int i = 0; i < 160; i++) {
 				for (int j = 0; j < 154; j++) {
 					A[i][j] =  i + 1.0;
 				}
@@ -47,7 +49,7 @@ int main(int argc, char* argv[])
 				for (int j = 0; j < 73; j++) {
 					B[i][j] = j + 1.0;
 				}
-			}
+			}*/
 		}
 
 		// sequential algorithm
@@ -97,20 +99,17 @@ int main(int argc, char* argv[])
 		}
 
 		matrix tmpA(20, 154);
-		std::cout << "1" << std::endl;
 		std::vector<matrix> tmpB;
 		for (int i = 0; i < 7; i++) {
 			tmpB.push_back(matrix(154, 9));
 		}
 		tmpB.push_back(matrix(154, 10));
-		std::cout << "2" << std::endl;
 
 		for (int i = 0; i < 20; i++) {
 			for (int j = 0; j < 154; j++) {
 				tmpA[i][j] = A[i][j];
 			}
 		}
-		std::cout << "3" << std::endl;
 
 		for (int i = 0; i < 154; i++) {
 			for (int j = 0; j < 9; j++) {
@@ -122,7 +121,6 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
-		std::cout << "4" << std::endl;
 		
 		matrix tmpC11 = tmpA * tmpB[0]; //(20, 9)
 		matrix tmpC16 = tmpA * tmpB[5];
@@ -132,7 +130,6 @@ int main(int argc, char* argv[])
 		matrix tmpC18 = tmpA * tmpB[7];
 		matrix tmpC13 = tmpA * tmpB[2];
 		matrix tmpC12 = tmpA * tmpB[1];
-		std::cout << "5" << std::endl;
 
 		matrix tmpC1(20, 73);
 		matrix tmpC2(20, 73);
@@ -163,10 +160,22 @@ int main(int argc, char* argv[])
 			}
 		}
 		
-		for (int i = 1; i < 7; ++i) {
+		for (int i = 0; i < 7; ++i) {
 			MPI_Send(&tmpB[i][0][0], 154 * 9, MPI_LONG_DOUBLE, 1, 10, MPI_COMM_WORLD);
+			std::string b_file_name = "B_SEND_";
+			b_file_name.append(std::to_string(i+1));
+			b_file_name.append(".txt");
+			std::ofstream B_SEND(b_file_name);
+			B_SEND << tmpB[i];
+			B_SEND.close();
 		}
 		MPI_Send(&tmpB[7][0][0], 154 * 10, MPI_LONG_DOUBLE, 1, 17, MPI_COMM_WORLD);
+		std::string b10_file_name = "B10_SEND";
+		b10_file_name.append(".txt");
+		std::ofstream B10_SEND(b10_file_name);
+		B10_SEND << tmpB[7];
+		B10_SEND.close();
+
 		MPI_Recv(&tmpC2[0][0], 20 * 73, MPI_LONG_DOUBLE, 1, 31, MPI_COMM_WORLD, &Status);
 		MPI_Recv(&tmpC3[0][0], 20 * 73, MPI_LONG_DOUBLE, 2, 31, MPI_COMM_WORLD, &Status);
 		MPI_Recv(&tmpC4[0][0], 20 * 73, MPI_LONG_DOUBLE, 3, 31, MPI_COMM_WORLD, &Status);
@@ -238,9 +247,18 @@ int main(int argc, char* argv[])
 		std::vector<int> Hamilton{ 0,1,2,7,6,4,3,5 };
 		auto pos = std::find(Hamilton.begin(), Hamilton.end(), ProcRank) - 1;
 		MPI_Recv(&tmpA[0][0], 154 * 20, MPI_LONG_DOUBLE, 0, ProcRank, MPI_COMM_WORLD, &Status);
-		MPI_Recv(&tmpB[0][0], 154 * 9, MPI_LONG_DOUBLE, *pos, 10, MPI_COMM_WORLD, &Status);
-		
+
+
 		for (int i = 0; i < 7; i++) {
+			MPI_Recv(&tmpB[0][0], 154 * 9, MPI_LONG_DOUBLE, *pos, 10, MPI_COMM_WORLD, &Status);
+			std::string b_file_name = "B_RECV_";
+			b_file_name.append(std::to_string(ProcRank));
+			b_file_name.append("_");
+			b_file_name.append(std::to_string(i));
+			b_file_name.append(".txt");
+			std::ofstream B_RECV(b_file_name);
+			B_RECV << tmpB;
+			B_RECV.close();
 			res = tmpA * tmpB;
 			tmpC.push_back(res);
 			if (ProcRank != 5) {
@@ -249,6 +267,14 @@ int main(int argc, char* argv[])
 		}
 
 		MPI_Recv(&tmpB10[0][0], 154 * 10, MPI_LONG_DOUBLE, *pos, 17, MPI_COMM_WORLD, &Status);
+
+		std::string b10_file_name = "B10_RECV_";
+		b10_file_name.append(std::to_string(ProcRank));
+		b10_file_name.append(".txt");
+		std::ofstream B10_RECV(b10_file_name);
+		B10_RECV << tmpB10;
+		B10_RECV.close();
+
 		//std::cout << tmpB10;
 		res = tmpA * tmpB10;
 		tmpC.push_back(res);
